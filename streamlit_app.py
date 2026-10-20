@@ -90,7 +90,16 @@ if st.button("ဗီဒီယို ရယူမယ်", disabled=not url.strip(
                 st.success("ရပါပြီ ✅")
                 st.rerun()
         except Exception as e:  # noqa: BLE001
-            st.error(f"ဗီဒီယို ဒေါင်းလုဒ် မရပါ: {e}")
+            msg = str(e)
+            if ("403" in msg or "bot" in msg.lower()
+                    or "Sign in to confirm" in msg):
+                st.error("⚠️ YouTube က ဒီ server ကနေ တိုက်ရိုက်ဆွဲတာ "
+                         "ပိတ်ထားလို့ မရပါ။\n\nအလွယ်နည်း: Safari မှာ "
+                         "**cobalt.tools** ဖွင့် → link paste → Download လုပ် → "
+                         "အောက်က **Upload** နဲ့ ဖိုင်တင်ပေးပါ။ "
+                         "ကျန်အဆင့်တွေ အကုန်အလုပ်လုပ်ပါတယ် ✅")
+            else:
+                st.error(f"ဗီဒီယို ဒေါင်းလုဒ် မရပါ: {msg[:200]}")
 
 st.divider()
 up = st.file_uploader("သို့မဟုတ် ဖိုင်တင်မယ်", type=["mp4", "mov", "mkv", "webm"])

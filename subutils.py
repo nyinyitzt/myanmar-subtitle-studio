@@ -55,24 +55,44 @@ def ffprobe_bin() -> str:
 # ------------------------------------------------------------------ download
 
 def download_youtube(url: str, target: Path) -> dict:
-    """Download best <=1080p mp4 via yt-dlp. Returns info dict."""
+    """Download best <=1080p mp4 via yt-dlp. Returns info dict.
+
+    Tries several YouTube player clients in turn: YouTube blocks
+    datacenter IPs unevenly, and a different client sometimes gets
+    through where the default web client gets HTTP 403 / bot-check.
+    Raises the last error if every client fails.
+    """
     import yt_dlp
-    ydl_opts = {
-        "format": "bv*[height<=1080]+ba/b[height<=1080]/b",
-        "merge_output_format": "mp4",
-        "outtmpl": str(target),
-        "noplaylist": True,
-        "quiet": True,
-        "no_warnings": True,
-        "socket_timeout": 30,
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url.strip(), download=True)
-    if not target.exists():
-        cands = sorted(target.parent.glob(target.stem + ".*"))
-        if cands:
-            cands[0].rename(target)
-    return info or {}
+    clients = [None, "ios", "android_vr", "web_safari"]
+    last_err: Exception | None = None
+    for client in clients:
+        ydl_opts = {
+            "format": "bv*[height<=1080]+ba/b[height<=1080]/b",
+            "merge_output_format": "mp4",
+            "outtmpl": str(target),
+            "noplaylist": True,
+            "quiet": True,
+            "no_warnings": True,
+            "socket_timeout": 25,
+        }
+        if client:
+            ydl_opts["extractor_args"] = {"youtube": {"player_client": [client]}}
+        # clean any partial file from the previous attempt
+        for p in list(target.parent.glob(target.stem + ".*")):
+            p.unlink(missing_ok=True)
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url.strip(), download=True)
+            if not target.exists():
+                cands = sorted(target.parent.glob(target.stem + ".*"))
+                if cands:
+                    cands[0].rename(target)
+            if target.exists() and target.stat().st_size > 0:
+                return info or {}
+            last_err = RuntimeError("empty download")
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+    raise last_err if last_err else RuntimeError("download failed")
 
 
 def normalize_video(src: Path, dst: Path):
