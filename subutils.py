@@ -54,13 +54,16 @@ def ffprobe_bin() -> str:
 
 # ------------------------------------------------------------------ download
 
-def download_youtube(url: str, target: Path) -> dict:
+def download_youtube(url: str, target: Path,
+                     cookies_file: Path | None = None) -> dict:
     """Download best <=1080p mp4 via yt-dlp. Returns info dict.
 
     Tries several YouTube player clients in turn: YouTube blocks
     datacenter IPs unevenly, and a different client sometimes gets
     through where the default web client gets HTTP 403 / bot-check.
-    Raises the last error if every client fails.
+    If cookies_file (the user's own exported YouTube cookies.txt) is
+    given, yt-dlp fetches as that logged-in account, which usually
+    passes the bot-check. Raises the last error if every attempt fails.
     """
     import yt_dlp
     clients = [None, "ios", "android_vr", "web_safari"]
@@ -75,6 +78,8 @@ def download_youtube(url: str, target: Path) -> dict:
             "no_warnings": True,
             "socket_timeout": 25,
         }
+        if cookies_file and Path(cookies_file).exists():
+            ydl_opts["cookiefile"] = str(cookies_file)
         if client:
             ydl_opts["extractor_args"] = {"youtube": {"player_client": [client]}}
         # clean any partial file from the previous attempt

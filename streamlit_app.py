@@ -42,6 +42,7 @@ ss("video_meta", None)
 ss("segments", [])
 ss("output_path", None)
 ss("api_key", "")
+ss("cookies_path", None)
 
 # ------------------------------------------------------------------ header
 
@@ -51,7 +52,8 @@ st.caption("Short film တွေကို မြန်မာစာတန်း�
 
 if st.button("＋ အသစ်စ", key="reset"):
     shutil.rmtree(WORK, ignore_errors=True)
-    for k in ("video_path", "video_meta", "segments", "output_path"):
+    for k in ("video_path", "video_meta", "segments", "output_path",
+              "cookies_path"):
         st.session_state[k] = [] if k == "segments" else None
     st.session_state.workdir = tempfile.mkdtemp(prefix="sstudio_")
     st.rerun()
@@ -67,7 +69,9 @@ if st.button("ဗီဒီယို ရယူမယ်", disabled=not url.strip(
             target = WORK / "source.mp4"
             if target.exists():
                 target.unlink()
-            info = download_youtube(url, target)
+            cp = st.session_state.get("cookies_path")
+            cookies = Path(cp) if cp and Path(cp).exists() else None
+            info = download_youtube(url, target, cookies_file=cookies)
             pr = probe(target)
             if pr["duration"] > MAX_VIDEO_SECONDS:
                 st.error(f"ဗီဒီယိုက {int(pr['duration'])} စက္ကန့်ရှိပြီး "
@@ -93,13 +97,34 @@ if st.button("ဗီဒီယို ရယူမယ်", disabled=not url.strip(
             msg = str(e)
             if ("403" in msg or "bot" in msg.lower()
                     or "Sign in to confirm" in msg):
-                st.error("⚠️ YouTube က ဒီ server ကနေ တိုက်ရိုက်ဆွဲတာ "
-                         "ပိတ်ထားလို့ မရပါ။\n\nအလွယ်နည်း: Safari မှာ "
-                         "**ssyoutube.com** ဖွင့် → link paste → Download လုပ် → "
-                         "အောက်က **Upload** နဲ့ ဖိုင်တင်ပေးပါ။ "
-                         "ကျန်အဆင့်တွေ အကုန်အလုပ်လုပ်ပါတယ် ✅")
+                if st.session_state.get("cookies_path"):
+                    st.error("⚠️ cookies နဲ့လည်း မရပါ — cookies သက်တမ်းကုန်သွား"
+                             "တာ ဖြစ်နိုင်တယ်။ laptop ကနေ အသစ် Export လုပ်ပြီး "
+                             "ပြန်တင်ပေးပါ။")
+                else:
+                    st.error("⚠️ YouTube က ဒီ server ကနေ တိုက်ရိုက်ဆွဲတာ "
+                             "ပိတ်ထားလို့ မရပါ။\n\n"
+                             "နည်း ၁: အောက်က **cookies.txt** တင်ထားရင် "
+                             "မင်း account နဲ့ ဝင်သလို ဆွဲပေးမယ်။\n"
+                             "နည်း ၂: Safari မှာ **ssyoutube.com** ဖွင့် → "
+                             "link paste → Download → အောက်က **Upload** နဲ့ "
+                             "ဖိုင်တင်ပေးပါ။ ကျန်အဆင့်တွေ အကုန်အလုပ်လုပ်ပါတယ် ✅")
             else:
                 st.error(f"ဗီဒီယို ဒေါင်းလုဒ် မရပါ: {msg[:200]}")
+
+with st.expander("🍪 YouTube cookies နဲ့ link ဆွဲမယ်"):
+    st.caption("Laptop Chrome မှာ youtube.com ဝင် (login ဝင်ထားပါ) → "
+               "\"Get cookies.txt LOCALLY\" extension နဲ့ cookies ကို Export → "
+               "ရလာတဲ့ cookies.txt ကို ဒီမှာ တင်။ Site က မင်း account နဲ့ "
+               "ဝင်သလို ဆွဲပေးမယ်။")
+    ck = st.file_uploader("cookies.txt တင်မယ်", type=["txt"], key="cookies_up")
+    if ck is not None:
+        cp = WORK / "yt_cookies.txt"
+        cp.write_bytes(ck.getvalue())
+        st.session_state.cookies_path = str(cp)
+        st.success("✅ cookies ထည့်ထားပြီး — link နဲ့ ပြန်စမ်းကြည့်ပါ")
+    st.caption("⚠️ cookies.txt ကို တခြားသူ မပေးပါနဲ့ (မင်း account သော့လိုပဲ)။ "
+               "သက်တမ်းကုန်ရင် အသစ် Export လုပ်ပြီး ပြန်တင်ရမယ်။")
 
 st.divider()
 up = st.file_uploader("သို့မဟုတ် ဖိုင်တင်မယ်", type=["mp4", "mov", "mkv", "webm"])
