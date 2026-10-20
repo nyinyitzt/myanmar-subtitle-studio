@@ -95,7 +95,7 @@ if st.button("ဗီဒီယို ရယူမယ်", disabled=not url.strip(
                     or "Sign in to confirm" in msg):
                 st.error("⚠️ YouTube က ဒီ server ကနေ တိုက်ရိုက်ဆွဲတာ "
                          "ပိတ်ထားလို့ မရပါ။\n\nအလွယ်နည်း: Safari မှာ "
-                         "**cobalt.tools** ဖွင့် → link paste → Download လုပ် → "
+                         "**ssyoutube.com** ဖွင့် → link paste → Download လုပ် → "
                          "အောက်က **Upload** နဲ့ ဖိုင်တင်ပေးပါ။ "
                          "ကျန်အဆင့်တွေ အကုန်အလုပ်လုပ်ပါတယ် ✅")
             else:
